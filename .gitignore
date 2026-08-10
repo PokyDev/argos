@@ -1,0 +1,31 @@
+# Binarios compilados
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+argos.exe
+/dist/
+/bin/
+
+# Tests y coverage
+*.test
+*.out
+coverage.txt
+
+# Dependencias vendored (si algún día se usa vendor)
+/vendor/
+
+# Configuración local / secretos
+.env
+*.local.yaml
+*.local.json
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
