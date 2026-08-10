@@ -4,7 +4,7 @@ CLI interactiva desarrollada en Go (`go1.26.4`, target `windows/amd64`), orienta
 
 ## Estructura del proyecto
 
-\`\`\`
+```
 argos/
 ├── cmd/
 │   └── argos/
@@ -24,7 +24,7 @@ argos/
 ├── configs/
 ├── docs/
 └── go.mod
-\`\`\`
+```
 
 Arquitectura: **Hexagonal (Ports & Adapters)**. El `core` no depende de `adapters`; cada integración externa (modelo, voz, config, terminal) es un adaptador intercambiable detrás de una interfaz definida en `core/ports`.
 
