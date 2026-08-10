@@ -33,8 +33,8 @@ Arquitectura: **Hexagonal (Ports & Adapters)**. El `core` no depende de `adapter
 ### Fase 1 — Fundamentos y estructura base (Días 1–4)
 - [x] Definir arquitectura general del proyecto
 - [x] Configurar entorno de desarrollo (Go 1.26.4, módulos, dependencias base)
-- [ ] Implementar el comando `argos` y el loop interactivo (REPL) básico
-- [ ] Implementar sistema base de comandos slash (`/help`, `/exit`, `/clear`)
+- [x] Implementar el comando `argos` y el loop interactivo (REPL) básico
+- [x] Implementar sistema base de comandos slash (`/help`, `/exit`, `/clear`)
 
 ### Fase 2 — Integración con modelos locales (Días 5–8)
 - [ ] Detección automática de modelos vía Ollama

@@ -82,8 +82,8 @@ El objetivo central es contar con un agente conversacional local que:
 ## 5. Cronograma por Fases (20 días)
 
 ### Fase 1 — Fundamentos y estructura base (Días 1–4)
-- [ ] Definir arquitectura general del proyecto (paquetes, estructura de carpetas Go).
-- [ ] Configurar entorno de desarrollo (Go 1.26.4, módulos, dependencias base).
+- [x] Definir arquitectura general del proyecto (paquetes, estructura de carpetas Go).
+- [x] Configurar entorno de desarrollo (Go 1.26.4, módulos, dependencias base).
 - [ ] Implementar el comando `argos` y el loop interactivo (REPL) básico.
 - [ ] Implementar sistema base de comandos slash (`/help`, `/exit`, `/clear`).
 
