@@ -84,8 +84,8 @@ El objetivo central es contar con un agente conversacional local que:
 ### Fase 1 — Fundamentos y estructura base (Días 1–4)
 - [x] Definir arquitectura general del proyecto (paquetes, estructura de carpetas Go).
 - [x] Configurar entorno de desarrollo (Go 1.26.4, módulos, dependencias base).
-- [ ] Implementar el comando `argos` y el loop interactivo (REPL) básico.
-- [ ] Implementar sistema base de comandos slash (`/help`, `/exit`, `/clear`).
+- [x] Implementar el comando `argos` y el loop interactivo (REPL) básico.
+- [x] Implementar sistema base de comandos slash (`/help`, `/exit`, `/clear`).
 
 ### Fase 2 — Integración con modelos locales (Días 5–8)
 - [ ] Implementar detección automática de modelos instalados vía Ollama.
