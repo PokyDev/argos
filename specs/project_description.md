@@ -89,8 +89,8 @@ El objetivo central es contar con un agente conversacional local que:
 
 ### Fase 2 — Integración con modelos locales (Días 5–8)
 - [x] Implementar detección automática de modelos instalados vía Ollama.
-- [ ] Implementar comando `/model` y `/models list`.
-- [ ] Establecer comunicación básica CLI ↔ modelo local (envío/recepción de prompts).
+- [x] Implementar comando `/model` y `/models list`.
+- [x] Establecer comunicación básica CLI ↔ modelo local (envío/recepción de prompts).
 - [x] Manejo de errores cuando Ollama no está corriendo o no hay modelos disponibles.
 
 ### Fase 3 — Chat interactivo y contexto de proyecto (Días 9–12)

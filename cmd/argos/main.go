@@ -15,7 +15,7 @@ func main() {
 
 	models := ollama.New()
 
-	session := usecase.NewSessionService(term, models)
+	session := usecase.NewSessionService(term, models, models)
 
 	if err := session.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)

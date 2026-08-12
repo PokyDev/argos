@@ -12,10 +12,10 @@ type SessionService struct {
 	dispatcher *CommandDispatcher
 }
 
-func NewSessionService(io ports.SessionIO, models ports.ModelProvider) *SessionService {
+func NewSessionService(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner) *SessionService {
 	return &SessionService{
 		io:         io,
-		dispatcher: NewCommandDispatcher(io, models),
+		dispatcher: NewCommandDispatcher(io, models, runner),
 	}
 }
 
@@ -50,6 +50,8 @@ func (s *SessionService) Run() error {
 
 		// Placeholder: la conexión con el modelo local (Ollama) llega en
 		// la Fase 2. Por ahora, texto libre solo hace eco.
-		s.io.WriteLine("(echo) " + line)
+
+		// RF-04: Texto libre se envia al modelo activo de la sesión
+		s.dispatcher.HandlePrompt(line)
 	}
 }

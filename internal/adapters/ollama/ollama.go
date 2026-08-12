@@ -5,6 +5,7 @@
 package ollama
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,7 +21,8 @@ const defaultBaseURL = "http://localhost:11434"
 // Client es la implementación de ports.ModelProvider para Ollama.
 type Client struct {
 	baseURL string
-	http    *http.Client
+	http    *http.Client // timeout corto, para /api/tags y /api/ps
+	genHTTP *http.Client // timeout largo, para /api/generate, posible demora
 }
 
 // New crea un cliente de Ollama apuntando al host local por defecto.
@@ -28,7 +30,56 @@ func New() *Client {
 	return &Client{
 		baseURL: defaultBaseURL,
 		http:    &http.Client{Timeout: 5 * time.Second},
+		genHTTP: &http.Client{Timeout: 5 * time.Minute},
 	}
+}
+
+type generateRequest struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+	Stream bool   `json:"stream"`
+}
+
+type generateResponse struct {
+	Response string `json:"response"`
+	Done     bool   `json:"done"`
+}
+
+type generateErrorResponse struct {
+	Error string `json:"error"`
+}
+
+func (c *Client) Generate(model, prompt string) (string, error) {
+	if model == "" {
+		return "", fmt.Errorf("no hay un modelo activo (usá /model <nombre>)")
+	}
+
+	body, err := json.Marshal(generateRequest{Model: model, Prompt: prompt, Stream: false})
+	if err != nil {
+		return "", fmt.Errorf("no se pudo preparar la solicitud: %w", err)
+	}
+
+	resp, err := c.genHTTP.Post(c.baseURL+"/api/generate", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("no se pudo conectar con Ollama en %s (¿está corriendo? probá /ollama init): %w", c.baseURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var apiErr generateErrorResponse
+		_ = json.NewDecoder(resp.Body).Decode(&apiErr)
+		if apiErr.Error != "" {
+			return "", fmt.Errorf("Ollama respondió con error: %s", apiErr.Error)
+		}
+		return "", fmt.Errorf("Ollama respondió con estado inesperado: %d", resp.StatusCode)
+	}
+
+	var out generateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", fmt.Errorf("respuesta de Ollama inválida: %w", err)
+	}
+
+	return out.Response, nil
 }
 
 // tagsResponse mapea la respuesta de GET /api/tags (modelos descargados).

@@ -16,12 +16,14 @@ var ErrExit = errors.New("sesión terminada por comando")
 
 // CommandDispatcher interpreta y ejecuta comandos slash sobre la sesión.
 type CommandDispatcher struct {
-	io     ports.SessionIO
-	models ports.ModelProvider
+	io          ports.SessionIO
+	models      ports.ModelProvider
+	runner      ports.ModelRunner
+	activeModel string // Modelo seleccionado RF-03
 }
 
-func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider) *CommandDispatcher {
-	return &CommandDispatcher{io: io, models: models}
+func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner) *CommandDispatcher {
+	return &CommandDispatcher{io: io, models: models, runner: runner}
 }
 
 // IsCommand indica si una línea de entrada corresponde a un slash command.
@@ -54,6 +56,8 @@ func (d *CommandDispatcher) Dispatch(cmd domain.Command) error {
 		d.clear()
 	case "models":
 		d.listModels()
+	case "model":
+		d.model(cmd.Args)
 	case "":
 		d.io.WriteLine("Comando vacío. Usa /help para ver los comandos disponibles.")
 	default:
@@ -64,10 +68,11 @@ func (d *CommandDispatcher) Dispatch(cmd domain.Command) error {
 
 func (d *CommandDispatcher) help() {
 	d.io.WriteLine("Comandos disponibles:")
-	d.io.WriteLine("  /help          - muestra esta ayuda")
-	d.io.WriteLine("  /clear         - limpia el contexto/historial de la sesión")
-	d.io.WriteLine("  /models list   - lista los modelos de IA detectados localmente y cuáles están cargados en memoria")
-	d.io.WriteLine("  /exit, /quit   - termina la sesión")
+	d.io.WriteLine("  /help           - muestra esta ayuda")
+	d.io.WriteLine("  /clear          - limpia el contexto/historial de la sesión")
+	d.io.WriteLine("  /models	      - lista los modelos de IA detectados localmente y cuáles están cargados en memoria")
+	d.io.WriteLine("  /model <nombre> - selecciona el modelo activo para la sesión (ver /models)")
+	d.io.WriteLine("  /exit, /quit    - termina la sesión")
 }
 
 // listModels implementa RF-02: detección automática de modelos locales.
@@ -95,6 +100,55 @@ func (d *CommandDispatcher) listModels() {
 		}
 		d.io.WriteLine(fmt.Sprintf("  - %s | %s | %s", m.Name, formatSize(m.Size), status))
 	}
+}
+
+func (d *CommandDispatcher) model(args []string) {
+	if len(args) == 0 {
+		if d.activeModel == "" {
+			d.io.WriteLine("No hay modelo activo. Usa /model <nombre> (ver /models list).")
+			return
+		}
+		d.io.WriteLine("Modelo activo: " + d.activeModel)
+		return
+	}
+
+	name := args[0]
+
+	models, err := d.models.ListModels()
+	if err != nil {
+		d.io.WriteLine("No se pudo verificar el modelo: " + err.Error())
+		return
+	}
+
+	found := false
+	for _, m := range models {
+		if m.Name == name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		d.io.WriteLine(fmt.Sprintf("Modelo '%s' no está entre los detectados. Usa /models list para ver los disponibles.", name))
+		return
+	}
+
+	d.activeModel = name
+	d.io.WriteLine("Modelo activo cambiado a: " + name)
+}
+
+func (d *CommandDispatcher) HandlePrompt(text string) {
+	if d.activeModel == "" {
+		d.io.WriteLine("No hay modelo activo. Usa /model <nombre> (ver /models list) antes de escribir.")
+		return
+	}
+
+	d.io.WriteLine("Pensando...")
+	response, err := d.runner.Generate(d.activeModel, text)
+	if err != nil {
+		d.io.WriteLine("Error al consultar el modelo: " + err.Error())
+		return
+	}
+	d.io.WriteLine(response)
 }
 
 // formatSize convierte bytes a una unidad legible (GB si aplica, si no MB).

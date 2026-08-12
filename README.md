@@ -37,10 +37,10 @@ Arquitectura: **Hexagonal (Ports & Adapters)**. El `core` no depende de `adapter
 - [x] Implementar sistema base de comandos slash (`/help`, `/exit`, `/clear`)
 
 ### Fase 2 — Integración con modelos locales (Días 5–8)
-- [ ] Detección automática de modelos vía Ollama
-- [ ] Comandos `/model` y `/models list`
-- [ ] Comunicación básica CLI ↔ modelo local
-- [ ] Manejo de errores cuando Ollama no está corriendo
+- [x] Detección automática de modelos vía Ollama
+- [x] Comandos `/model` y `/models list`
+- [x] Comunicación básica CLI ↔ modelo local
+- [x] Manejo de errores cuando Ollama no está corriendo
 
 ### Fase 3 — Chat interactivo y contexto de proyecto (Días 9–12)
 - [ ] Historial de conversación (`/history`)
