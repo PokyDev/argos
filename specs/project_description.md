@@ -58,6 +58,7 @@ El objetivo central es contar con un agente conversacional local que:
 | RF-11 | El sistema debe guardar configuración local del usuario (modelo por defecto, preferencias de voz, rutas frecuentes) en un archivo de configuración persistente. |
 | RF-12 | El sistema debe permitir ejecutar Argos apuntando a un directorio de proyecto específico (`argos --path <ruta>`). |
 | RF-13 | El sistema debe generar reportes/resúmenes de auditoría de código exportables (ej. Markdown o texto plano). |
+| RF-14 | El sistema debe presentar la interfaz de terminal con un **área de input fija** en la parte inferior de la pantalla, separada visualmente del área de output (historial de conversación) mediante un separador, de modo que el historial pueda desplazarse (scroll) de forma independiente al campo de escritura. |
 
 ---
 
@@ -76,6 +77,7 @@ El objetivo central es contar con un agente conversacional local que:
 | RNF-09 | **Mantenibilidad:** código Go idiomático, con pruebas unitarias mínimas para los módulos core (detección de modelos, parsing de comandos). |
 | RNF-10 | **Configurabilidad:** parámetros clave (modelo por defecto, idioma de voz, formato de reportes) deben ser configurables sin recompilar el binario. |
 | RNF-11 | **Preparación para futuro módulo móvil:** el diseño del agente y su capa de comunicación deben evitar acoplamientos que impidan exponer una API/socket local reutilizable desde una app móvil más adelante. |
+| RNF-12 | **Legibilidad de sesión:** debe existir separación visual (saltos de línea) entre cada bloque de input y su output correspondiente para evitar que el contenido se vea aglomerado; todo input enviado por el usuario debe quedar registrado de forma persistente en el historial visible de la terminal, incluso después de que el campo de input fijo lo "limpie" para el siguiente mensaje. |
 
 ---
 
@@ -92,6 +94,15 @@ El objetivo central es contar con un agente conversacional local que:
 - [x] Implementar comando `/model` y `/models list`.
 - [x] Establecer comunicación básica CLI ↔ modelo local (envío/recepción de prompts).
 - [x] Manejo de errores cuando Ollama no está corriendo o no hay modelos disponibles.
+
+### Fase Intermedia 2.5 — Mejoras de visualización en terminal
+
+> Motivación: escribir directamente debajo de los outputs resulta incómodo y el contenido se ve amontonado. Se busca una experiencia de terminal más clara, con un campo de input fijo y separación visual entre turnos.
+
+- [ ] Definir un área de input fija en la parte inferior de la terminal, separada del área de output mediante un separador visual (línea horizontal u otro delimitador).
+- [ ] Garantizar que el campo de input permanezca fijo (no se desplace) mientras el historial de outputs hace scroll hacia arriba.
+- [ ] Tras enviar un input, registrarlo (echo) en el historial/scroll de la terminal para que quede visible junto a su output correspondiente.
+- [ ] Insertar saltos de línea entre cada bloque de input y su output correspondiente, para evitar que el contenido se vea pegado.
 
 ### Fase 3 — Chat interactivo y contexto de proyecto (Días 9–12)
 - [ ] Implementar historial de conversación (`/history`).
@@ -118,3 +129,5 @@ El objetivo central es contar con un agente conversacional local que:
 - Este documento es la fuente de verdad del proyecto bajo metodología SDD.
 - Cualquier cambio de alcance, nuevo requisito o ajuste de cronograma debe reflejarse aquí antes de continuar el desarrollo.
 - La integración móvil **no** forma parte del cronograma actual de 20 días; queda registrada como visión futura (ver sección 2 y RNF-11).
+
+- (12/08/2026): La Fase 2.5 (mejoras de visualización de terminal) introduce RF-14 y RNF-12. **Decisión tomada:** se implementará con `bubbletea` + `lipgloss` (+ `bubbles/textinput` solo para el campo de input), en lugar de `tview` o ANSI manual. Justificación: da control explícito sobre el layout de dos regiones (historial con scroll + input fijo) sin heredar un framework de widgets completo (tview), y ANSI manual queda descartado por su volatilidad y complejidad de mantenimiento fuera de casos muy puntuales. Vive en `internal/adapters/terminal/`; no afecta a `core` (sigue implementando `ports.SessionIO`). 100% local, cumple RNF-04.
