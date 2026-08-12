@@ -16,11 +16,12 @@ var ErrExit = errors.New("sesión terminada por comando")
 
 // CommandDispatcher interpreta y ejecuta comandos slash sobre la sesión.
 type CommandDispatcher struct {
-	io ports.SessionIO
+	io     ports.SessionIO
+	models ports.ModelProvider
 }
 
-func NewCommandDispatcher(io ports.SessionIO) *CommandDispatcher {
-	return &CommandDispatcher{io: io}
+func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider) *CommandDispatcher {
+	return &CommandDispatcher{io: io, models: models}
 }
 
 // IsCommand indica si una línea de entrada corresponde a un slash command.
@@ -51,6 +52,8 @@ func (d *CommandDispatcher) Dispatch(cmd domain.Command) error {
 		return ErrExit
 	case "clear":
 		d.clear()
+	case "models":
+		d.listModels()
 	case "":
 		d.io.WriteLine("Comando vacío. Usa /help para ver los comandos disponibles.")
 	default:
@@ -63,7 +66,50 @@ func (d *CommandDispatcher) help() {
 	d.io.WriteLine("Comandos disponibles:")
 	d.io.WriteLine("  /help          - muestra esta ayuda")
 	d.io.WriteLine("  /clear         - limpia el contexto/historial de la sesión")
+	d.io.WriteLine("  /models list   - lista los modelos de IA detectados localmente y cuáles están cargados en memoria")
 	d.io.WriteLine("  /exit, /quit   - termina la sesión")
+}
+
+// listModels implementa RF-02: detección automática de modelos locales.
+// Cubre tanto "/models" como "/models list" (el subcomando "list" es el
+// único soportado por ahora; se ignora si viene, ya que no hay otra
+// variante todavía).
+func (d *CommandDispatcher) listModels() {
+	models, err := d.models.ListModels()
+	if err != nil {
+		d.io.WriteLine("No se pudo obtener la lista de modelos: " + err.Error())
+		return
+	}
+
+	if len(models) == 0 {
+		d.io.WriteLine("No se detectaron modelos instalados en Ollama.")
+		d.io.WriteLine("Instalá uno con: ollama pull <modelo>  (ej. ollama pull llama3.2:1b)")
+		return
+	}
+
+	d.io.WriteLine(fmt.Sprintf("Modelos detectados (%d):", len(models)))
+	for _, m := range models {
+		status := "disponible"
+		if m.Loaded {
+			status = "cargado"
+		}
+		d.io.WriteLine(fmt.Sprintf("  - %s | %s | %s", m.Name, formatSize(m.Size), status))
+	}
+}
+
+// formatSize convierte bytes a una unidad legible (GB si aplica, si no MB).
+func formatSize(bytes int64) string {
+	const mb = 1024 * 1024
+	const gb = 1024 * mb
+
+	switch {
+	case bytes >= gb:
+		return fmt.Sprintf("%.1f GB", float64(bytes)/float64(gb))
+	case bytes >= mb:
+		return fmt.Sprintf("%.0f MB", float64(bytes)/float64(mb))
+	default:
+		return fmt.Sprintf("%d B", bytes)
+	}
 }
 
 func (d *CommandDispatcher) clear() {

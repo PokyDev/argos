@@ -12,10 +12,10 @@ type SessionService struct {
 	dispatcher *CommandDispatcher
 }
 
-func NewSessionService(io ports.SessionIO) *SessionService {
+func NewSessionService(io ports.SessionIO, models ports.ModelProvider) *SessionService {
 	return &SessionService{
 		io:         io,
-		dispatcher: NewCommandDispatcher(io),
+		dispatcher: NewCommandDispatcher(io, models),
 	}
 }
 
