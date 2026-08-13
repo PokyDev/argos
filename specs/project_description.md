@@ -99,10 +99,10 @@ El objetivo central es contar con un agente conversacional local que:
 
 > Motivación: escribir directamente debajo de los outputs resulta incómodo y el contenido se ve amontonado. Se busca una experiencia de terminal más clara, con un campo de input fijo y separación visual entre turnos.
 
-- [ ] Definir un área de input fija en la parte inferior de la terminal, separada del área de output mediante un separador visual (línea horizontal u otro delimitador).
-- [ ] Garantizar que el campo de input permanezca fijo (no se desplace) mientras el historial de outputs hace scroll hacia arriba.
-- [ ] Tras enviar un input, registrarlo (echo) en el historial/scroll de la terminal para que quede visible junto a su output correspondiente.
-- [ ] Insertar saltos de línea entre cada bloque de input y su output correspondiente, para evitar que el contenido se vea pegado.
+- [x] Definir un área de input fija en la parte inferior de la terminal, separada del área de output mediante un separador visual (línea horizontal u otro delimitador).
+- [x] Garantizar que el campo de input permanezca fijo (no se desplace) mientras el historial de outputs hace scroll hacia arriba.
+- [x] Tras enviar un input, registrarlo (echo) en el historial/scroll de la terminal para que quede visible junto a su output correspondiente.
+- [x] Insertar saltos de línea entre cada bloque de input y su output correspondiente, para evitar que el contenido se vea pegado.
 
 ### Fase 3 — Chat interactivo y contexto de proyecto (Días 9–12)
 - [ ] Implementar historial de conversación (`/history`).
@@ -130,4 +130,4 @@ El objetivo central es contar con un agente conversacional local que:
 - Cualquier cambio de alcance, nuevo requisito o ajuste de cronograma debe reflejarse aquí antes de continuar el desarrollo.
 - La integración móvil **no** forma parte del cronograma actual de 20 días; queda registrada como visión futura (ver sección 2 y RNF-11).
 
-- (12/08/2026): La Fase 2.5 (mejoras de visualización de terminal) introduce RF-14 y RNF-12. **Decisión tomada:** se implementará con `bubbletea` + `lipgloss` (+ `bubbles/textinput` solo para el campo de input), en lugar de `tview` o ANSI manual. Justificación: da control explícito sobre el layout de dos regiones (historial con scroll + input fijo) sin heredar un framework de widgets completo (tview), y ANSI manual queda descartado por su volatilidad y complejidad de mantenimiento fuera de casos muy puntuales. Vive en `internal/adapters/terminal/`; no afecta a `core` (sigue implementando `ports.SessionIO`). 100% local, cumple RNF-04.
+- (12/08/2026): La Fase 2.5 (mejoras de visualización de terminal) introduce RF-14 y RNF-12. **Decisión tomada:** se implementará con `bubbletea` + `lipgloss` (+ `bubbles/textinput` solo para el campo de input), en lugar de `tview` o ANSI manual. Justificación: da control explícito sobre el layout de dos regiones (historial con scroll + input fijo) sin heredar un framework de widgets completo (tview), y ANSI manual queda descartado por su volatilidad y complejidad de mantenimiento fuera de casos muy puntuales. Vive en `internal/adapters/terminal/`; no afecta a `core` (sigue implementando `ports.SessionIO`). 100% local, cumple RNF-04. [FINISH]

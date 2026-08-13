@@ -46,10 +46,10 @@ Arquitectura: **Hexagonal (Ports & Adapters)**. El `core` no depende de `adapter
 
 > Motivación: escribir directamente debajo de los outputs resulta incómodo y el contenido se ve amontonado. Se busca una experiencia de terminal más clara, con un campo de input fijo y separación visual entre turnos.
 
-- [ ] Definir un área de input fija en la parte inferior de la terminal, separada del área de output mediante un separador visual (línea horizontal u otro delimitador).
-- [ ] Garantizar que el campo de input permanezca fijo (no se desplace) mientras el historial de outputs hace scroll hacia arriba.
-- [ ] Tras enviar un input, registrarlo (echo) en el historial/scroll de la terminal para que quede visible junto a su output correspondiente.
-- [ ] Insertar saltos de línea entre cada bloque de input y su output correspondiente, para evitar que el contenido se vea pegado.
+- [x] Definir un área de input fija en la parte inferior de la terminal, separada del área de output mediante un separador visual (línea horizontal u otro delimitador).
+- [x] Garantizar que el campo de input permanezca fijo (no se desplace) mientras el historial de outputs hace scroll hacia arriba.
+- [x] Tras enviar un input, registrarlo (echo) en el historial/scroll de la terminal para que quede visible junto a su output correspondiente.
+- [x] Insertar saltos de línea entre cada bloque de input y su output correspondiente, para evitar que el contenido se vea pegado.
 
 ### Fase 3 — Chat interactivo y contexto de proyecto (Días 9–12)
 - [ ] Historial de conversación (`/history`)
