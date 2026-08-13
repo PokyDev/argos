@@ -42,16 +42,16 @@ El objetivo central es contar con un agente conversacional local que:
 | RF-05 | El sistema debe soportar interacción por **voz** (entrada por micrófono y opcionalmente salida por voz/TTS). |
 | RF-06 | El agente debe poder **leer y analizar archivos de código** del proyecto actual (auditoría de código). |
 | RF-07 | El agente debe poder **detectar y explicar errores** (debugging) en código existente, sin generar soluciones de alta complejidad. |
-| RF-08 | El sistema debe mantener un **historial de conversación** dentro de la sesión activa. |
-| RF-09 | El sistema debe permitir **adjuntar/referenciar archivos o carpetas** del proyecto para dar contexto al agente. |
+| RF-08 | El sistema debe mantener y **persistir** el historial de conversación por proyecto (directorio `.argos/`), permitiendo listar conversaciones previas mediante `/history` (título, fecha, resumen) y retomar (cargar) una conversación seleccionada como sesión activa. |
+| RF-09 | El sistema debe permitir construir contexto de proyecto para el agente mediante `/init`: tras seleccionar el modelo activo desde una lista interactiva de modelos detectados (RF-02), el sistema recorre los archivos del proyecto y genera un archivo persistente `ARGOS.md` en la raíz del proyecto con un resumen de arquitectura/propósito, que se carga automáticamente como contexto activo en cada sesión mientras exista. |
 | RF-10 | El sistema debe contar con comandos internos tipo "slash command", entre ellos (propuesta inicial): |
 | | `/help` — lista de comandos disponibles |
 | | `/model` — listar/cambiar modelo de IA activo |
 | | `/voice on\|off` — activar/desactivar modo voz |
 | | `/scan <ruta>` — auditar una carpeta o archivo de código |
-| | `/context` — mostrar archivos/contexto cargado actualmente |
+| | `/init` — generar/regenerar `ARGOS.md` (contexto persistente del proyecto) |
 | | `/clear` — limpiar contexto o historial de sesión |
-| | `/history` — ver historial de la conversación actual |
+| | `/history` — ver/retomar conversaciones previas |
 | | `/exit` o `/quit` — salir de la sesión interactiva |
 | | `/config` — ver o editar configuración local de Argos |
 | | `/models list` — refrescar/listar modelos detectados localmente |
@@ -105,8 +105,8 @@ El objetivo central es contar con un agente conversacional local que:
 - [x] Insertar saltos de línea entre cada bloque de input y su output correspondiente, para evitar que el contenido se vea pegado.
 
 ### Fase 3 — Chat interactivo y contexto de proyecto (Días 9–12)
-- [ ] Implementar historial de conversación (`/history`).
-- [ ] Implementar carga de contexto de archivos/carpetas (`/context`, `--path`).
+- [ ] Implementar historial de conversación persistente (`/history`).
+- [ ] Implementar `/init` (selección interactiva de modelo + generación de `ARGOS.md`, `--path`).
 - [ ] Implementar comando `/scan` para auditoría de código.
 - [ ] Implementar generación de reportes de auditoría exportables.
 
@@ -131,3 +131,19 @@ El objetivo central es contar con un agente conversacional local que:
 - La integración móvil **no** forma parte del cronograma actual de 20 días; queda registrada como visión futura (ver sección 2 y RNF-11).
 
 - (12/08/2026): La Fase 2.5 (mejoras de visualización de terminal) introduce RF-14 y RNF-12. **Decisión tomada:** se implementará con `bubbletea` + `lipgloss` (+ `bubbles/textinput` solo para el campo de input), en lugar de `tview` o ANSI manual. Justificación: da control explícito sobre el layout de dos regiones (historial con scroll + input fijo) sin heredar un framework de widgets completo (tview), y ANSI manual queda descartado por su volatilidad y complejidad de mantenimiento fuera de casos muy puntuales. Vive en `internal/adapters/terminal/`; no afecta a `core` (sigue implementando `ports.SessionIO`). 100% local, cumple RNF-04. [FINISH]
+
+- (13/08/2026): Diseño de Fase 3 (chat interactivo y contexto de proyecto). Los checklists del cronograma quedaban subespecificados, así que se fija el diseño acá antes de escribir código. Nota reescrita en el mismo día tras corregir una confusión: **se mantiene `/history`** (persistencia de conversaciones) y **se descarta `/context`**, reemplazado por `/init` (contexto de proyecto vía `ARGOS.md`, inspirado en `/init` de Claude Code). Actualiza RF-08 y RF-09 (ver sección 3) y resuelve el pendiente arquitectónico anotado desde `phase_two.md` §8.
+
+  1. **Historial persistente (RF-08).** Al arrancar `argos` sobre un directorio (el actual, o el de `--path`, RF-12) se crea `.argos/` en esa misma ruta si no existe — nunca en `$HOME`, para no romper RNF-08 (acceso limitado a rutas explícitas). Cada conversación se guarda como un JSON individual en `.argos/sessions/`. `/history` lista las sesiones guardadas (título, fecha, resumen); título y resumen se generan con el modelo activo al persistir la sesión. La selección (flechas o click) usa un modo de lista sobre el mismo `tea.Program` de Fase 2.5 (candidato: `bubbles/list`), sin introducir un framework de UI nuevo. Seleccionar una conversación la carga como sesión activa (mensajes + modelo usado en su momento).
+  2. **Contexto de proyecto vía `/init` (RF-09).** Flujo: (a) lista interactiva de modelos detectados vía Ollama (RF-02) — mismo componente de selección que en el punto 1, aplicado acá a elegir modelo en vez de conversación; (b) el modelo elegido queda como `Session.ActiveModel`; (c) recorrido del árbol de archivos del proyecto excluyendo `.git/`, `.argos/`, `node_modules/`, `vendor/` y binarios (lista fija en esta fase; parsear `.gitignore` queda fuera de alcance para no sobre-diseñar); (d) por cada archivo se le pide al modelo un resumen de propósito/responsabilidad, y esos resúmenes se sintetizan en un único **`ARGOS.md` en la raíz del proyecto** (no dentro de `.argos/`) — a propósito, para que sea versionable en git y editable por humanos, igual que `CLAUDE.md`. Por eso **no** va en `.gitignore` (a diferencia de `.argos/` y `argos.exe`).
+  3. **Auto-carga de `ARGOS.md`.** Si existe al arrancar `argos` sobre un proyecto, se carga automáticamente como contexto activo de la sesión — es el punto central de tener un archivo de contexto persistente; no hay comando manual para cargarlo aparte (no existe `/context`). Costo aceptado: agranda el prompt en cada turno; dado el hardware CPU-bound de Javier y los modelos chicos (0.5B–3B) con los que trabaja, esto puede pesar en la práctica. Queda anotado como candidato a volverse configurable (activar/desactivar auto-carga) en Fase 5 vía `/config` (RNF-10) si hace falta.
+  4. **`/init` regenera desde cero, no actualiza incrementalmente.** Sin diff/merge con un `ARGOS.md` existente en esta fase — se sobreescribe completo. Limitación de alcance intencional, no deuda técnica.
+  5. **`/scan <ruta>` (RF-06, RF-07, RF-13)** no cambia: prompt de auditoría especializado (lenguaje detectado, responsabilidad del archivo, brechas de seguridad, mejoras, refactors posibles), resultado impreso en la sesión y exportado como Markdown a `.argos/reports/`.
+  6. **Arquitectura — entidades y puertos.**
+     - `domain.Session` / `domain.Message`: entidades pendientes desde Fase 2 (`phase_two.md` §8). `Session` agrupa `ID`, `Title`, `CreatedAt`, `Messages []Message`, `ActiveModel`. El contenido de `ARGOS.md` se carga en memoria al iniciar sesión (no es un campo que el usuario setee a mano, ya no existe `/context` para eso).
+     - **Decisión sobre el pendiente de `phase_two.md` §8:** `activeModel` deja de vivir en `CommandDispatcher` y pasa a `Session`, dueña ahora `SessionService`. `CommandDispatcher` deja de tener estado propio de sesión; opera sobre la `Session` activa que recibe.
+     - Nuevo puerto `ports.HistoryStore` (`Save(Session) error`, `List() ([]SessionMeta, error)`, `Load(id) (Session, error)`) — implementado en un adapter de archivos JSON (paquete a definir al implementar, ej. `internal/adapters/storage/`).
+     - El recorrido de archivos con exclusión para `/init` y `/scan` se centraliza en `internal/adapters/scanner/` (carpeta ya existente y vacía desde Fase 1) — evita duplicar lectura de filesystem y mantiene acotado el acceso (RNF-08) a un solo adapter.
+     - La orquestación de `/init` (múltiples llamadas a `Generate`, una por archivo, más síntesis final) amerita su propio archivo en vez de vivir en `command_dispatcher.go`, ej. `internal/core/usecase/project_init.go`.
+     - `/clear` deja de ser stub (resuelve el `TODO(fase 3)` de `command_dispatcher.go`): limpia `Session.Messages` de la sesión activa. No toca `ARGOS.md` (eso solo lo regenera `/init`) ni el historial ya persistido en `.argos/sessions/`.
+  7. **Housekeeping:** `.argos/` sigue yendo a `.gitignore` (contiene `sessions/` y `reports/`); `ARGOS.md` explícitamente **no** va en `.gitignore`.
