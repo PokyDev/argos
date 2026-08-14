@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pokydev/argos/internal/core/domain"
 	"github.com/pokydev/argos/internal/core/ports"
@@ -15,15 +16,20 @@ import (
 var ErrExit = errors.New("sesión terminada por comando")
 
 // CommandDispatcher interpreta y ejecuta comandos slash sobre la sesión.
+//
+// Desde Fase 3, ya no mantiene activeModel como estado propio (ver
+// phase_two.md §8): opera sobre la *domain.Session activa, cuya
+// instancia es dueña de SessionService y se comparte por puntero.
 type CommandDispatcher struct {
-	io          ports.SessionIO
-	models      ports.ModelProvider
-	runner      ports.ModelRunner
-	activeModel string // Modelo seleccionado RF-03
+	io      ports.SessionIO
+	models  ports.ModelProvider
+	runner  ports.ModelRunner
+	history ports.HistoryStore
+	session *domain.Session
 }
 
-func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner) *CommandDispatcher {
-	return &CommandDispatcher{io: io, models: models, runner: runner}
+func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner, history ports.HistoryStore, session *domain.Session) *CommandDispatcher {
+	return &CommandDispatcher{io: io, models: models, runner: runner, history: history, session: session}
 }
 
 // IsCommand indica si una línea de entrada corresponde a un slash command.
@@ -58,6 +64,8 @@ func (d *CommandDispatcher) Dispatch(cmd domain.Command) error {
 		d.listModels()
 	case "model":
 		d.model(cmd.Args)
+	case "history":
+		d.historyCmd()
 	case "":
 		d.io.WriteLine("Comando vacío. Usa /help para ver los comandos disponibles.")
 	default:
@@ -69,9 +77,10 @@ func (d *CommandDispatcher) Dispatch(cmd domain.Command) error {
 func (d *CommandDispatcher) help() {
 	d.io.WriteLine("Comandos disponibles:")
 	d.io.WriteLine("  /help           - muestra esta ayuda")
-	d.io.WriteLine("  /clear          - limpia el contexto/historial de la sesión")
+	d.io.WriteLine("  /clear          - limpia el historial de mensajes de la sesión activa")
 	d.io.WriteLine("  /models	      - lista los modelos de IA detectados localmente y cuáles están cargados en memoria")
 	d.io.WriteLine("  /model <nombre> - selecciona el modelo activo para la sesión (ver /models)")
+	d.io.WriteLine("  /history        - lista y retoma conversaciones guardadas")
 	d.io.WriteLine("  /exit, /quit    - termina la sesión")
 }
 
@@ -104,11 +113,11 @@ func (d *CommandDispatcher) listModels() {
 
 func (d *CommandDispatcher) model(args []string) {
 	if len(args) == 0 {
-		if d.activeModel == "" {
+		if d.session.ActiveModel == "" {
 			d.io.WriteLine("No hay modelo activo. Usa /model <nombre> (ver /models list).")
 			return
 		}
-		d.io.WriteLine("Modelo activo: " + d.activeModel)
+		d.io.WriteLine("Modelo activo: " + d.session.ActiveModel)
 		return
 	}
 
@@ -132,23 +141,92 @@ func (d *CommandDispatcher) model(args []string) {
 		return
 	}
 
-	d.activeModel = name
+	d.session.ActiveModel = name
 	d.io.WriteLine("Modelo activo cambiado a: " + name)
 }
 
+// HandlePrompt implementa RF-04: envía texto libre al modelo activo de
+// la sesión y registra ambos lados del turno en Session.Messages
+// (RF-08), para que quede disponible al persistir con /history.
 func (d *CommandDispatcher) HandlePrompt(text string) {
-	if d.activeModel == "" {
+	if d.session.ActiveModel == "" {
 		d.io.WriteLine("No hay modelo activo. Usa /model <nombre> (ver /models list) antes de escribir.")
 		return
 	}
 
+	d.session.Messages = append(d.session.Messages, domain.Message{
+		Role: "user", Content: text, At: time.Now(),
+	})
+
 	d.io.WriteLine("Pensando...")
-	response, err := d.runner.Generate(d.activeModel, text)
+	response, err := d.runner.Generate(d.session.ActiveModel, text)
 	if err != nil {
 		d.io.WriteLine("Error al consultar el modelo: " + err.Error())
 		return
 	}
+
+	d.session.Messages = append(d.session.Messages, domain.Message{
+		Role: "assistant", Content: response, At: time.Now(),
+	})
 	d.io.WriteLine(response)
+}
+
+// historyCmd implementa RF-08 (comando /history): lista las
+// conversaciones guardadas por FileStore, deja elegir una mediante
+// selección interactiva (ports.SessionIO.SelectFromList) y la carga
+// como sesión activa (mensajes + modelo usado en su momento).
+func (d *CommandDispatcher) historyCmd() {
+	metas, err := d.history.List()
+	if err != nil {
+		d.io.WriteLine("No se pudo leer el historial de conversaciones: " + err.Error())
+		return
+	}
+
+	if len(metas) == 0 {
+		d.io.WriteLine("No hay conversaciones guardadas todavía.")
+		return
+	}
+
+	options := make([]domain.ListOption, len(metas))
+	for i, m := range metas {
+		title := m.Title
+		if title == "" {
+			title = "(sin título)"
+		}
+		summary := m.Summary
+		if summary == "" {
+			summary = "sin resumen"
+		}
+		options[i] = domain.ListOption{
+			Title:       title,
+			Description: fmt.Sprintf("%s — %s", m.CreatedAt.Format("02/01/2006 15:04"), summary),
+		}
+	}
+
+	idx, err := d.io.SelectFromList("Conversaciones guardadas:", options)
+	if err != nil {
+		if errors.Is(err, ports.ErrSelectionCancelled) {
+			d.io.WriteLine("Selección cancelada.")
+			return
+		}
+		d.io.WriteLine("No se pudo completar la selección: " + err.Error())
+		return
+	}
+
+	loaded, err := d.history.Load(metas[idx].ID)
+	if err != nil {
+		d.io.WriteLine("No se pudo cargar la conversación: " + err.Error())
+		return
+	}
+
+	*d.session = loaded
+
+	activeModel := d.session.ActiveModel
+	if activeModel == "" {
+		activeModel = "ninguno"
+	}
+	d.io.WriteLine(fmt.Sprintf("Conversación '%s' cargada (%d mensajes, modelo: %s).",
+		d.session.Title, len(d.session.Messages), activeModel))
 }
 
 // formatSize convierte bytes a una unidad legible (GB si aplica, si no MB).
@@ -166,9 +244,11 @@ func formatSize(bytes int64) string {
 	}
 }
 
+// clear implementa RF-08 (ya no es stub, resuelve el TODO(fase 3) que
+// venía desde Fase 1/2): limpia los mensajes de la sesión activa en
+// memoria. No toca lo ya persistido en .argos/sessions/ ni el modelo
+// activo — solo el historial de la conversación en curso.
 func (d *CommandDispatcher) clear() {
-	// TODO(fase 3): limpiar historial real de conversación (RF-08) cuando
-	// SessionService mantenga estado de mensajes. Por ahora es un stub
-	// intencional para no anticipar la entidad Session/Message sin uso real.
-	d.io.WriteLine("Contexto/historial limpiado.")
+	d.session.Messages = nil
+	d.io.WriteLine("Historial de la conversación limpiado.")
 }

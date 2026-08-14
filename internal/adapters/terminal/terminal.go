@@ -1,9 +1,13 @@
 package terminal
 
 import (
+	"fmt"
 	"io"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/pokydev/argos/internal/core/domain"
+	"github.com/pokydev/argos/internal/core/ports"
 )
 
 // Terminal implementa ports.SessionIO sobre una TUI bubbletea de dos
@@ -55,6 +59,28 @@ func (t *Terminal) ReadLine() (string, error) {
 
 func (t *Terminal) WriteLine(msg string) {
 	t.prog.Send(outputLineMsg(msg))
+}
+
+// SelectFromList implementa ports.SessionIO. Puente análogo al de
+// ReadLine/WriteLine: empuja un showListMsg al tea.Program (que pasa el
+// model a modo lista) y bloquea leyendo un canal propio de esta llamada
+// hasta que el usuario confirma o cancela. El canal viaja dentro del
+// mensaje en vez de ser un campo de Terminal porque SelectFromList no
+// se espera concurrente (mismo patrón "un turno a la vez" que ReadLine).
+func (t *Terminal) SelectFromList(prompt string, options []domain.ListOption) (int, error) {
+	if len(options) == 0 {
+		return -1, fmt.Errorf("no hay opciones para seleccionar")
+	}
+
+	resultCh := make(chan selectResult, 1)
+	t.prog.Send(showListMsg{prompt: prompt, options: options, result: resultCh})
+
+	select {
+	case r := <-resultCh:
+		return r.index, r.err
+	case <-t.doneCh:
+		return -1, ports.ErrSelectionCancelled
+	}
 }
 
 func (t *Terminal) Close() error {
