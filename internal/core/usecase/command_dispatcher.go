@@ -227,6 +227,37 @@ func (d *CommandDispatcher) historyCmd() {
 	}
 	d.io.WriteLine(fmt.Sprintf("Conversación '%s' cargada (%d mensajes, modelo: %s).",
 		d.session.Title, len(d.session.Messages), activeModel))
+
+	d.replayTranscript()
+}
+
+// replayTranscript reimprime los mensajes de la sesión recién cargada en
+// el historial visual de la terminal (RF-08: "retomar/cargar una
+// conversación"). d.session.Messages ya queda poblado con solo asignar
+// *d.session = loaded — eso alcanza para que el modelo tenga contexto en
+// el próximo prompt, pero el historial visual (viewport) es un []string
+// aparte que vive en terminal/model.go (ver intermediate_phases.md,
+// notas de Fase 2.5) y no se sincroniza solo. Esta función lo hace
+// pasando cada mensaje por el mismo ports.SessionIO.WriteLine que ya se
+// usa en todos lados, sin que command_dispatcher.go conozca nada de
+// bubbletea/viewport (la frontera hexagonal no se toca).
+func (d *CommandDispatcher) replayTranscript() {
+	if len(d.session.Messages) == 0 {
+		return
+	}
+
+	d.io.WriteLine("")
+	d.io.WriteLine("── Transcripción de la conversación cargada ──")
+	for _, m := range d.session.Messages {
+		switch m.Role {
+		case "user":
+			d.io.WriteLine("")
+			d.io.WriteLine("Tú: " + m.Content)
+		case "assistant":
+			d.io.WriteLine("")
+			d.io.WriteLine("Argos: " + m.Content)
+		}
+	}
 }
 
 // formatSize convierte bytes a una unidad legible (GB si aplica, si no MB).
@@ -247,7 +278,7 @@ func formatSize(bytes int64) string {
 // clear implementa RF-08 (ya no es stub, resuelve el TODO(fase 3) que
 // venía desde Fase 1/2): limpia los mensajes de la sesión activa en
 // memoria. No toca lo ya persistido en .argos/sessions/ ni el modelo
-// activo — solo el historial de la conversación en curso.
+// activo — solo el historial de la conversaciFón en curso.
 func (d *CommandDispatcher) clear() {
 	d.session.Messages = nil
 	d.io.WriteLine("Historial de la conversación limpiado.")

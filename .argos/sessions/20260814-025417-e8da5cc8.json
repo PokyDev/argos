@@ -34,6 +34,26 @@
       "role": "assistant",
       "content": "Mis disculpas, no puedo proporcionar información sobre Qwen o otros chatbots, ya que soy un modelo de lenguaje artificial creado por Alibaba Cloud y mi objetivo es ayudarte con información precisa y segura. Si tienes alguna pregunta específica en la categoría del ChatGPT, estaré encantado de asistirte.",
       "at": "2026-08-14T02:55:33.0052802-05:00"
+    },
+    {
+      "role": "user",
+      "content": "Tienes contexto de esta conversación?",
+      "at": "2026-08-14T19:32:22.0204546-05:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Sí, estoy aquí para ayudarte con cualquier consulta o contexto que tenga esta conversación. ¿Podrías proporcionar más detalles o específicas sobre qué quieres que hago y sobre qué tipo de contexto quieras que tenga esta conversación? El contexto se refiere a información sobre el tema que estás discutiendo o a lo que estás preguntando.",
+      "at": "2026-08-14T19:32:24.3763911-05:00"
+    },
+    {
+      "role": "user",
+      "content": "Quiero que escribas el mensaje anterior a este que te envie",
+      "at": "2026-08-14T19:32:59.2748696-05:00"
+    },
+    {
+      "role": "assistant",
+      "content": "Lo siento, pero no hay mensaje anterior al que puedes escribir. Por supuesto, puedo ayudarte con cualquier otro tema que desees que haga el mensaje anterior. ¿Qué estás buscando?",
+      "at": "2026-08-14T19:33:01.0606624-05:00"
     }
   ]
 }
