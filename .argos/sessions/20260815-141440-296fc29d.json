@@ -1,0 +1,30 @@
+{
+  "id": "20260815-141440-296fc29d",
+  "title": "Solicitud de ayuda para crear una descripción de proyecto de programación",
+  "summary": "El usuario solicita ayuda para crear una descripción de proyecto de programación, enviando archivos del directorio.",
+  "created_at": "2026-08-15T14:14:41.0189019-05:00",
+  "active_model": "phi4-mini:latest",
+  "root_path": "C:\\Users\\Andre\\Desktop\\Argos",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hola",
+      "at": "2026-08-15T14:15:18.1521193-05:00"
+    },
+    {
+      "role": "assistant",
+      "content": "¡Hola! ¿Cómo estás hoy? ¿En qué puedo ayudarte?",
+      "at": "2026-08-15T14:15:24.9510029-05:00"
+    },
+    {
+      "role": "user",
+      "content": "Podria adjuntarte archivos de un directorio para que generes una descripción de un proyecto de programación?",
+      "at": "2026-08-15T14:15:51.2410523-05:00"
+    },
+    {
+      "role": "assistant",
+      "content": "¡Claro! Para poder ayudarte con la creación de una descripción de un proyecto de programación, necesitaré que me proporciones los archivos del directorio en cuestión. Sin embargo, como una IA basada en texto, no puedo recibir archivos directamente. Puedes copiar y pegar los contenidos de tus archivos en el chat aquí, o puedes describir el contenido de tus archivos y los aspectos importantes del proyecto de programación. Con esta información, puedo ayudarte a redactar una descripción detallada del proyecto.",
+      "at": "2026-08-15T14:16:01.0557251-05:00"
+    }
+  ]
+}

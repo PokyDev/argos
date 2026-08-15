@@ -25,11 +25,12 @@ type CommandDispatcher struct {
 	models  ports.ModelProvider
 	runner  ports.ModelRunner
 	history ports.HistoryStore
+	scanner ports.ProjectScanner
 	session *domain.Session
 }
 
-func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner, history ports.HistoryStore, session *domain.Session) *CommandDispatcher {
-	return &CommandDispatcher{io: io, models: models, runner: runner, history: history, session: session}
+func NewCommandDispatcher(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner, history ports.HistoryStore, scanner ports.ProjectScanner, session *domain.Session) *CommandDispatcher {
+	return &CommandDispatcher{io: io, models: models, runner: runner, history: history, scanner: scanner, session: session}
 }
 
 // IsCommand indica si una línea de entrada corresponde a un slash command.
@@ -66,6 +67,8 @@ func (d *CommandDispatcher) Dispatch(cmd domain.Command) error {
 		d.model(cmd.Args)
 	case "history":
 		d.historyCmd()
+	case "init":
+		d.initCmd()
 	case "":
 		d.io.WriteLine("Comando vacío. Usa /help para ver los comandos disponibles.")
 	default:
@@ -81,7 +84,17 @@ func (d *CommandDispatcher) help() {
 	d.io.WriteLine("  /models	      - lista los modelos de IA detectados localmente y cuáles están cargados en memoria")
 	d.io.WriteLine("  /model <nombre> - selecciona el modelo activo para la sesión (ver /models)")
 	d.io.WriteLine("  /history        - lista y retoma conversaciones guardadas")
+	d.io.WriteLine("  /init           - escanea el proyecto actual y genera ARGOS.md con el modelo activo")
 	d.io.WriteLine("  /exit, /quit    - termina la sesión")
+}
+
+// initCmd implementa /init (RF-09): delega en runInit (project_init.go)
+// la orquestación completa (validaciones, escaneo, resumen por archivo
+// y síntesis final). Vive como método fino acá, igual que historyCmd,
+// para mantener el switch de Dispatch como único punto de entrada de
+// comandos.
+func (d *CommandDispatcher) initCmd() {
+	runInit(d.io, d.scanner, d.runner, d.session)
 }
 
 // listModels implementa RF-02: detección automática de modelos locales.

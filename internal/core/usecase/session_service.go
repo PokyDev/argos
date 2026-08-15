@@ -20,13 +20,13 @@ type SessionService struct {
 	dispatcher *CommandDispatcher
 }
 
-func NewSessionService(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner, history ports.HistoryStore) *SessionService {
-	session := domain.NewSession()
+func NewSessionService(io ports.SessionIO, models ports.ModelProvider, runner ports.ModelRunner, history ports.HistoryStore, scanner ports.ProjectScanner, rootPath string) *SessionService {
+	session := domain.NewSession(rootPath)
 	return &SessionService{
 		io:         io,
 		history:    history,
 		session:    session,
-		dispatcher: NewCommandDispatcher(io, models, runner, history, session),
+		dispatcher: NewCommandDispatcher(io, models, runner, history, scanner, session),
 	}
 }
 

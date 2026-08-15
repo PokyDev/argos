@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/pokydev/argos/internal/adapters/ollama"
+	"github.com/pokydev/argos/internal/adapters/scanner"
 	"github.com/pokydev/argos/internal/adapters/storage"
 	"github.com/pokydev/argos/internal/adapters/terminal"
 	"github.com/pokydev/argos/internal/core/usecase"
@@ -15,9 +16,11 @@ func main() {
 	defer term.Close()
 
 	models := ollama.New()
+	projectScanner := scanner.New()
 
-	// RF-08: la raíz del historial es el directorio de trabajo actual.
-	// Resolver --path (RF-12) queda para el checklist de /init.
+	// RF-08/RF-09: la raíz del historial y de /init es el directorio de
+	// trabajo actual. Resolver --path (RF-12) queda pendiente para un
+	// checklist futuro.
 	root, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -30,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	session := usecase.NewSessionService(term, models, models, history)
+	session := usecase.NewSessionService(term, models, models, history, projectScanner, root)
 
 	if err := session.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)

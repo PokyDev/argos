@@ -27,15 +27,25 @@ type Session struct {
 	Summary     string    `json:"summary"`
 	CreatedAt   time.Time `json:"created_at"`
 	ActiveModel string    `json:"active_model"`
-	Messages    []Message `json:"messages"`
+	// RootPath es el directorio desde el que se inició esta sesión de
+	// argos (hoy siempre el directorio de trabajo actual; --path/RF-12
+	// queda pendiente). La usa /init (RF-09) para saber qué árbol de
+	// archivos escanear. Se persiste junto al resto de la sesión, pero
+	// sesiones guardadas antes de este campo simplemente lo cargan vacío
+	// (compatibilidad hacia atrás de encoding/json).
+	RootPath string    `json:"root_path"`
+	Messages []Message `json:"messages"`
 }
 
 // NewSession crea una sesión vacía con un ID único basado en timestamp,
 // lista para usarse como sesión activa desde el arranque de argos.
-func NewSession() *Session {
+// rootPath es la raíz del proyecto sobre la que corre esta sesión (ver
+// RootPath arriba).
+func NewSession(rootPath string) *Session {
 	return &Session{
 		ID:        newSessionID(),
 		CreatedAt: time.Now(),
+		RootPath:  rootPath,
 	}
 }
 
